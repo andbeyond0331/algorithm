@@ -1,4 +1,5 @@
 import java.io.BufferedReader;
+import java.io.DataOutput;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.StringTokenizer;
@@ -11,26 +12,16 @@ public class Main {
     StringTokenizer st;
     for (int i = 0; i < T; i++) {
       st = new StringTokenizer(br.readLine());
-      int l = Integer.parseInt(st.nextToken());
-      int r = Integer.parseInt(st.nextToken());
-      int s = Integer.parseInt(st.nextToken());
-      int n = 1;
-      boolean pl = true;
-      boolean flag = false;
-      while(!flag) {
-        if(s == l || s == r) {
-          flag = true;
-          System.out.println(n);
-        } else {
-          if(pl) {
-            s += n++;
-          } else {
-            s -= n++;
-          }
-          pl = !pl;
-        }
+      long l = Long.parseLong(st.nextToken());
+      long r = Long.parseLong(st.nextToken());
+      long s = Long.parseLong(st.nextToken());
 
-      }
+      long dl = s-l;
+      long dr = r-s;
+      long ans;
+      if(dl < dr) ans = 2*dl +1;
+      else ans = 2*dr;
+      System.out.println(ans);
     }
   }
 }
