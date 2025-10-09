@@ -1,95 +1,63 @@
 import java.util.*;
 
 class Solution {
-    public static Map<String, String> map = new HashMap<>();
-    public static Map<String, Integer> countMap = new HashMap<>();
     public int[] solution(int[] fees, String[] records) {
-        int[] answer;
-        // fees 기본 시간(분), 기본 요금(원), 단위 시간(분), 단위 요금(원)
-        StringTokenizer st;
-        for(int i = 0; i < records.length; i++) {
-            st = new StringTokenizer(records[i]);
-            String time = st.nextToken();
-            String carNum = st.nextToken();
-            String IN_OUT = st.nextToken();
-            
-            if(map.size()==0) {
-                map.put(carNum, time);
-            }
-            else  {
-                if(map.containsKey(carNum)) {
-                    String inTime = map.get(carNum);
-                    map.remove(carNum);
-                    // String inTimeHour = inTime.substring(0,2);
-                    // String inTimeMinute = inTime.substring(3, 5);
-                    // String outTimeHour = time.substring(0,2);
-                    // String outTimeMinute = time.substring(3, 5);
-                    int inTimeHour = Integer.parseInt(inTime.substring(0,2));
-                    int inTimeMinute = Integer.parseInt(inTime.substring(3, 5));
-                    int outTimeHour = Integer.parseInt(time.substring(0,2));
-                    int outTimeMinute = Integer.parseInt(time.substring(3, 5));
-                    // System.out.println(carNum + ": " + inTimeHour + ", "+ inTimeMinute + ", " + outTimeHour + " , " + outTimeMinute);
-                    int temp =0;
-                    if(outTimeMinute>=inTimeMinute) {
-                         temp = outTimeMinute-inTimeMinute + ((outTimeHour -inTimeHour) * 60);
-                        
-                    }else {
-                         temp = 60-inTimeMinute + outTimeMinute + ((outTimeHour - inTimeHour-1) * 60);
-                    }
-                    if(countMap.containsKey(carNum)) {
-                        // System.out.println(temp);
-                            countMap.put(carNum, countMap.get(carNum) + temp);
-                        }else{
-                        // System.out.println(temp);
-                            countMap.put(carNum, temp);
-                        }
+        // 입출차 관리 map
+        // 누적 시간 관리 map
+        // 요금 관리 map
+        Map<Integer, Integer> come = new HashMap<>(); // 입출차 관리 map (key: 차량번호, value: 입차 시간)
+        Map<Integer, Integer> time = new HashMap<>(); // 누적 시간 관리 map (key: 차량번호, value: 누적 시간)
+        // Map<Integer, Integer> pay = new HashMap<>(); // 요금 관리 map (key: 차량번호, value: 누적 요금)
+        // 입출차 기록으로 입차마다 come에 넣음
+        String[] record;
+        int car, t;
+        String io;
+        for(int i = 0;i < records.length; i++) {
+            record = records[i].split(" ");
+            t = Integer.parseInt(record[0].substring(0, 2))*60 + Integer.parseInt(record[0].substring(3));
+            car = Integer.parseInt(record[1]);
+            io = record[2];
+            // System.out.println("t: " + t + ", car: " + car);
+            if(io.equals("IN")) {
+                come.put(car, t);
+            } else {
+                if(time.containsKey(car)) {
+                    time.put(car, time.get(car) + (t-come.get(car)));
+                    come.remove(car);
                 } else {
-                    // System.out.println(temp);
-                    map.put(carNum, time);
+                    time.put(car, t-come.get(car));
+                    come.remove(car);
                 }
             }
         }
-        
-        for(String s: map.keySet()) {
-            int lastHour = 23;
-            int lastMinute = 59;
-            int thisHour = Integer.parseInt(map.get(s).substring(0,2));
-            int thisMinute = Integer.parseInt(map.get(s).substring(3, 5));
-            int temp = 0;
-            if(lastMinute>=thisMinute) {
-                temp = (lastHour-thisHour)*60 + lastMinute-thisMinute;
-            }else {
-                temp = (lastHour-thisHour-1)*60 + 60-thisMinute + lastMinute;
-            }
-            if(countMap.containsKey(s)) {
-                countMap.put(s, countMap.get(s) + temp);
-            }else{
-                countMap.put(s, temp);
+        // 출차 시 time에 누적 시간 넣고 come에 있는 기록 뺌
+        // 다 돌고 나면 come에 남은 애들은 11:59에 나온 걸로 누적 시간 time에 더함
+        for(int i : come.keySet()) {
+            if(time.containsKey(i)) {
+                // System.out.println(i);
+                time.put(i, time.get(i) + (23*60+59-come.get(i)));
+                // System.out.println(time.get(i));
+            } else {
+                time.put(i, 23*60+59-come.get(i));
             }
         }
-        List<String> list = new ArrayList<>();
-        
-        for(String s : countMap.keySet()) {
-            list.add(s);    
+        // time keyset list에 넣어서 오름차순 정렬
+        List<Integer> list = new ArrayList<>();
+        for(int i: time.keySet()) {
+            list.add(i);
         }
         list.sort(Comparator.naturalOrder());
-        for(int i = 0; i < list.size(); i ++) {
-            // System.out.println(list.get(i) + " : " + countMap.get(list.get(i)));
-            
-        }
-        answer = new int[countMap.size()];
-        int idx = 0;
-        for(String i: list) {
-            if(countMap.get(i)<=fees[0]) {
-                answer[idx] = fees[1];
-            } else {
-                int temp = countMap.get(i)-fees[0];
-                answer[idx] = fees[1]+(temp%fees[2]==0?(temp/fees[2])*fees[3]:(temp/fees[2]+1)*fees[3]);
+        // map에서 하나씩 빼면서 정산해서 return
+        int[] answer = new int[list.size()];
+        for(int i = 0; i < answer.length; i++) {
+            int t2 = time.get(list.get(i));
+            int payment = fees[1];
+            t2-=fees[0];
+            if(t2>0) {
+                payment+= t2%fees[2]==0?t2/fees[2]*fees[3]:(t2/fees[2]+1)*fees[3];
             }
-            idx++;
+            answer[i] = payment;
         }
-        
-        
         return answer;
     }
 }
